@@ -216,29 +216,6 @@ namespace Editor.Windows
             texture.filterMode = FilterMode.Point;
             texture.Apply();
             return texture;
-            
-            // var width = sourceTexture.width;
-            // var height = sourceTexture.height;
-            // var texture = new Texture2D(width, height);
-            //
-            // for (var x = 0; x < width; x++)
-            // for (var y = 0; y < height; y++)
-            // {
-            //     var sourceColor = sourceTexture.GetPixel(x, y);
-            //     if (Mathf.Approximately(sourceColor.a,  0f))
-            //     {
-            //         texture.SetPixel(x, y, new Color(0, 0, 0, 0 ));
-            //         continue;
-            //     }
-            //     
-            //     var red = x / (float)width;
-            //     var green = y / (float)height;
-            //     var color = new Color(red, green, 0f);
-            //     
-            //     texture.SetPixel(x, y, color);
-            // }
-            // texture.Apply();
-            // return texture;
         }
 
         private (Vector2Int min, Vector2Int max) GetTextureBounds(Texture2D sourceTexture)
@@ -287,17 +264,14 @@ namespace Editor.Windows
         {
             IEnumerable<Object> selectedObjects = null;
 
-            if (Selection.objects.Length > 0)
-                selectedObjects = Selection.objects;
-            else
+            var folderPath = AssetDatabase.GetAssetPath(Selection.activeInstanceID);
+            if (Directory.Exists(folderPath))
             {
-                var folderPath = AssetDatabase.GetAssetPath(Selection.activeInstanceID);
-                if (Directory.Exists(folderPath))
-                {
-                    var files = Directory.GetFiles(folderPath, "*", SearchOption.TopDirectoryOnly);
-                    selectedObjects = files.Select(AssetDatabase.LoadAssetAtPath<Object>).ToList();
-                }
+                var files = Directory.GetFiles(folderPath, "*", SearchOption.TopDirectoryOnly);
+                selectedObjects = files.Select(AssetDatabase.LoadAssetAtPath<Object>).ToList();
             }
+            else if (Selection.objects.Length > 0)
+                selectedObjects = Selection.objects;
 
             return selectedObjects;
         }
