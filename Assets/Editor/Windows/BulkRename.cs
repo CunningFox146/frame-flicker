@@ -1,4 +1,5 @@
-﻿using UnityEditor;
+﻿using Editor.Utils;
+using UnityEditor;
 using UnityEngine;
 using UnityEngine.UIElements;
 using Object = UnityEngine.Object;
@@ -29,7 +30,7 @@ namespace Editor.Windows
 
         private void OnDestroy()
         {
-            RenameAssets(_selectedObjects, _inputField.value);
+            AssetUtils.RenameAssets(_selectedObjects, _inputField.value);
         }
 
         protected override void RenderWindow()
@@ -37,37 +38,14 @@ namespace Editor.Windows
             _inputField = new TextField();
             _inputField.style.flexGrow = 1;
 
-            rootVisualElement.focusable = true;
             rootVisualElement.Add(_inputField);
-            rootVisualElement.RegisterCallback<KeyDownEvent>(OnKeyDown, TrickleDown.TrickleDown);
         }
 
-        private void OnKeyDown(KeyDownEvent evt)
+        protected override void OnEscapePressed()
         {
-            switch (evt.keyCode)
-            {
-                case KeyCode.Return:
-                    Close();
-                    break;
-                case KeyCode.Escape:
-                    _inputField.Clear();
-                    _selectedObjects = null;
-                    Close();
-                    break;
-            }
-        }
-
-        private static void RenameAssets(Object[] objects, string newName)
-        {
-            if (objects is null || string.IsNullOrWhiteSpace(newName))
-                return;
-
-            for (var i = 0; i < objects.Length; i++)
-            {
-                var selectedObject = objects[i];
-                AssetDatabase.RenameAsset(AssetDatabase.GetAssetPath(selectedObject), $"{newName}{i}");
-            }
-            AssetDatabase.SaveAssets();
+            base.OnEscapePressed();
+            _inputField.Clear();
+            _selectedObjects = null;
         }
     }
 }

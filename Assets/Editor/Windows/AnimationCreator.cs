@@ -1,19 +1,15 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
+﻿using System.Collections.Generic;
 using System.Linq;
 using CunningFox146.Animation.Util;
-using Unity.Mathematics;
+using Editor.Utils;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.UIElements;
-using Object = UnityEngine.Object;
 
 namespace Editor.Windows
 {
     public class AnimationCreator : EditorWindowBase
     {
-        private const float MinAlpha = 0.05f;
         private const string UvOverlayClass = "uvOverlay";
         private const string UvClass = "uv";
         
@@ -22,12 +18,13 @@ namespace Editor.Windows
         [MenuItem("Assets/Create Animation", false, 101)]
         public static void CreateAnimation()
         {
-            _selectedTextures = GetSelectedObjects()?.Where(e => e is Texture2D).Cast<Texture2D>().ToList();
+            var selectedObjects = AssetUtils.GetSelectedObjects();
+            _selectedTextures = selectedObjects?.Where(e => e is Texture2D).Cast<Texture2D>().ToList();
 
             if (_selectedTextures is null || !_selectedTextures.Any())
                 return;
             
-            ConvertTexturesToSprites(_selectedTextures);
+            // ConvertTexturesToSprites(_selectedTextures);
             GetWindow<AnimationCreator>("Animation generator").Focus();
         }
 
@@ -41,6 +38,48 @@ namespace Editor.Windows
             var nameLength = Length.Percent(10);
             var toggleLength = Length.Percent(5);
             
+            var listView = RenderListView(nameLength, toggleLength);
+            var header = RenderHeader(nameLength, toggleLength);
+            
+            var foldout = new Foldout();
+            foldout.text = "Textures";
+
+            foldout.Add(header);
+            foldout.Add(listView);
+
+            rootVisualElement.Add(foldout);
+        }
+
+        private static void ConvertTexturesToSprites(List<Texture2D> textures)
+        {
+            Undo.IncrementCurrentGroup();
+            
+            foreach (var importer in textures.Select(texture => AssetImporter.GetAtPath(AssetDatabase.GetAssetPath(texture))))
+            {
+                if (importer is not TextureImporter textureImporter)
+                    continue;
+                
+                Undo.RecordObject(importer, $"Texture convert {importer.name}");
+                SetupSpriteImporter(textureImporter);
+            }
+        }
+
+        private static void SetupSpriteImporter(TextureImporter importer)
+        {
+            importer.textureType = TextureImporterType.Sprite;
+            importer.filterMode = FilterMode.Point;
+
+            importer.compressionQuality = 75;
+            importer.textureCompression = TextureImporterCompression.CompressedHQ;
+            importer.crunchedCompression = true;
+            importer.isReadable = true;
+            importer.spritePixelsPerUnit = 32;
+                
+            importer.SaveAndReimport();
+        }
+
+        private static ListView RenderListView(Length nameLength, Length toggleLength)
+        {
             var listView = new ListView
             {
                 
@@ -121,10 +160,11 @@ namespace Editor.Windows
                     flexGrow = 1
                 }
             };
-            
-            var foldout = new Foldout();
-            foldout.text = "Textures";
+            return listView;
+        }
 
+        private static VisualElement RenderHeader(Length nameLength, Length toggleLength)
+        {
             var header = new VisualElement();
             header.style.flexDirection = FlexDirection.Row;
             
@@ -167,129 +207,16 @@ namespace Editor.Windows
                     flexGrow = 1
                 }
             });
-
-            foldout.Add(header);
-            foldout.Add(listView);
-
-            rootVisualElement.focusable = true;
-            rootVisualElement.Add(foldout);
-            rootVisualElement.RegisterCallback<KeyDownEvent>(OnKeyDown, TrickleDown.TrickleDown);
+            return header;
         }
 
-        private static void ConvertTexturesToSprites(List<Texture2D> textures)
+        protected override void OnEnterPressed() 
+            => Close();
+
+        protected override void OnEscapePressed()
         {
-            Undo.IncrementCurrentGroup();
-            
-            foreach (var importer in textures.Select(texture => AssetImporter.GetAtPath(AssetDatabase.GetAssetPath(texture))))
-            {
-                if (importer is not TextureImporter textureImporter)
-                    continue;
-                
-                Undo.RecordObject(importer, $"Texture convert {importer.name}");
-                SetupSpriteImporter(textureImporter);
-            }
-        }
-
-        private static void SetupSpriteImporter(TextureImporter importer)
-        {
-            importer.textureType = TextureImporterType.Sprite;
-            importer.filterMode = FilterMode.Point;
-
-            importer.compressionQuality = 75;
-            importer.textureCompression = TextureImporterCompression.CompressedHQ;
-            importer.crunchedCompression = true;
-            importer.isReadable = true;
-            importer.spritePixelsPerUnit = 32;
-                
-            importer.SaveAndReimport();
-        }
-
-        private Texture2D CreateUvTexture(Texture2D sourceTexture)
-        {
-            
-            var width = sourceTexture.width;
-            var height = sourceTexture.height;
-            var texture = new Texture2D(width, height);
-            var (boundMin, boundMax) = GetTextureBounds(sourceTexture);
-            
-            
-            for (var x = 0; x < width; x++)
-            for (var y = 0; y < height; y++)
-            {
-                texture.SetPixel(x, y, Color.clear);
-            }
-
-            
-            for(var x = boundMin.x; x <= boundMax.x; x++)
-            for (var y = boundMin.y; y <= boundMax.y; y++)
-            {
-                var red = math.remap(boundMin.x, boundMax.x, 0f, 1f, x);
-                var green = math.remap(boundMin.y, boundMax.y, 0f, 1f, y);
-                texture.SetPixel(x, y, new Color(red, green, 0f));
-            }
-
-            texture.wrapMode = TextureWrapMode.Clamp;
-            texture.filterMode = FilterMode.Point;
-            texture.Apply();
-            return texture;
-        }
-
-        private (Vector2Int min, Vector2Int max) GetTextureBounds(Texture2D sourceTexture)
-        {
-            var min = Vector2Int.one * int.MaxValue;
-            var max = Vector2Int.one * int.MinValue;
-            
-            for (var x = 0; x < sourceTexture.width; x++)
-            for (var y = 0; y < sourceTexture.height; y++)
-            {
-                var sourceColor = sourceTexture.GetPixel(x, y);
-                if (sourceColor.a > MinAlpha)
-                {
-                    if (min.x > x)
-                        min.x = x;
-                    
-                    if (min.y > y)
-                        min.y = y;
-                    
-                    if (max.x < x)
-                        max.x = x;
-                    
-                    if (max.y < y)
-                        max.y = y;
-                }
-            }
-
-            return (min, max);
-        }
-
-        private void OnKeyDown(KeyDownEvent evt)
-        {
-            switch (evt.keyCode)
-            {
-                case KeyCode.Return:
-                    Close();
-                    break;
-                case KeyCode.Escape:
-                    _selectedTextures = null;
-                    Close();
-                    break;
-            }
-        }
-
-        private static IEnumerable<Object> GetSelectedObjects()
-        {
-            IEnumerable<Object> selectedObjects = null;
-
-            var folderPath = AssetDatabase.GetAssetPath(Selection.activeInstanceID);
-            if (Directory.Exists(folderPath))
-            {
-                var files = Directory.GetFiles(folderPath, "*", SearchOption.TopDirectoryOnly);
-                selectedObjects = files.Select(AssetDatabase.LoadAssetAtPath<Object>).ToList();
-            }
-            else if (Selection.objects.Length > 0)
-                selectedObjects = Selection.objects;
-
-            return selectedObjects;
+            _selectedTextures = null;
+            base.OnEscapePressed();
         }
     }
 }
