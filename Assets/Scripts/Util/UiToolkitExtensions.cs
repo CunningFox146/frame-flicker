@@ -1,4 +1,5 @@
-﻿using UnityEngine.UIElements;
+﻿using UnityEngine;
+using UnityEngine.UIElements;
 
 namespace CunningFox146.Animation.Util
 {
@@ -11,5 +12,27 @@ namespace CunningFox146.Animation.Util
             style.paddingTop = top;
             style.paddingBottom = bottom;
         }
+        
+        public static void SetBorderWidth(this IStyle style, float left, float right, float top, float bottom)
+        {
+            style.borderLeftWidth = left;
+            style.borderRightWidth = right;
+            style.borderTopWidth = top;
+            style.borderBottomWidth = bottom;
+        }
+
+        public static void SetBorderWidth(this IStyle style, float width)
+            => SetBorderWidth(style, width, width, width, width);
+        
+        public static void SetBorderColor(this IStyle style, Color left, Color right, Color top, Color bottom)
+        {
+            style.borderLeftColor = left;
+            style.borderRightColor = right;
+            style.borderTopColor = top;
+            style.borderBottomColor = bottom;
+        }
+
+        public static void SetBorderColor(this IStyle style, Color color)
+            => SetBorderColor(style, color, color, color, color);
     }
 }

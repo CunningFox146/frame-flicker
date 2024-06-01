@@ -4,7 +4,6 @@ using CunningFox146.Animation.Util;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.UIElements;
-using Object = UnityEngine.Object;
 
 namespace Editor.Windows
 {
@@ -22,6 +21,9 @@ namespace Editor.Windows
 
         protected override void RenderWindow()
         {
+            var nameLength = Length.Percent(10);
+            var toggleLength = Length.Percent(5);
+            
             var listView = new ListView
             {
                 itemsSource = _selectedTextures,
@@ -32,21 +34,37 @@ namespace Editor.Windows
                 {
                     var root = new VisualElement();
                     var label = new Label();
+                    var toggle = new Toggle();
                     var image = new Image();
+                    var uvOverlay = new Image();
                     var uvPreview = new Image();
 
                     root.style.flexDirection = FlexDirection.Row;
                     root.style.SetPadding(4, 4, 4, 4);
                     
                     label.style.unityTextAlign = TextAnchor.MiddleLeft;
-                    
+                    label.style.whiteSpace = WhiteSpace.Normal;
+                    label.style.width = nameLength;
+
+                    toggle.style.width = toggleLength;
                     image.style.flexGrow = 1;
+                    
+                    uvOverlay.AddToClassList("uv");
+                    uvOverlay.AddToClassList("uvOverlay");
+                    uvOverlay.style.position = Position.Absolute;
+                    uvOverlay.style.flexGrow = 1;
+                    uvOverlay.style.width = Length.Percent(100);
+                    uvOverlay.style.height = Length.Percent(100);
+                    uvOverlay.visible = false;
+                    
+                    uvPreview.AddToClassList("uv");
                     uvPreview.style.flexGrow = 1;
-                    uvPreview.name = "uvPreview";
                     
                     root.Add(label);
+                    root.Add(toggle);
                     root.Add(image);
                     root.Add(uvPreview);
+                    image.Add(uvOverlay);
                     return root;
                 },
 
@@ -54,11 +72,17 @@ namespace Editor.Windows
                 {
                     var texture = _selectedTextures[idx];
                     var importer = (TextureImporter)AssetImporter.GetAtPath(AssetDatabase.GetAssetPath(texture));
-                    var uvPreview = element.Q<Image>("uvPreview");
+                    var uvPreview = element.Q<Image>(className: "uvOverlay");
                     
                     element.Q<Label>().text = texture.name;
                     element.Q<Image>().image = texture;
-                    uvPreview.image = CreateUvTexture(texture);
+                    element.Q<Toggle>().RegisterValueChangedCallback(val => uvPreview.visible = val.newValue);
+                    
+                    var uv = CreateUvTexture(texture);
+                    foreach (var image in element.Query<Image>(className: "uv").ToList())
+                    {
+                        image.image = uv;
+                    }
 
                     // if (importer.secondarySpriteTextures.Any())
                     // {
@@ -81,9 +105,53 @@ namespace Editor.Windows
             var foldout = new Foldout();
             foldout.text = "Textures";
 
-            rootVisualElement.Add(foldout);
+            var header = new VisualElement();
+            header.style.flexDirection = FlexDirection.Row;
+            
+            header.Add(new Label("Texture Name")
+            {
+                style =
+                {
+                    unityFontStyleAndWeight = FontStyle.Bold,
+                    unityTextAlign = TextAnchor.MiddleLeft,
+                    width = nameLength
+                }
+            });
+            
+            header.Add(new Label("Show UV")
+            {
+                style =
+                {
+                    unityFontStyleAndWeight = FontStyle.Bold,
+                    unityTextAlign = TextAnchor.MiddleCenter,
+                    width = toggleLength
+                }
+            });
+            
+            header.Add(new Label("Texture")
+            {
+                style =
+                {
+                    unityFontStyleAndWeight = FontStyle.Bold,
+                    unityTextAlign = TextAnchor.MiddleCenter,
+                    flexGrow = 1
+                }
+            });
+            
+            header.Add(new Label("UV")
+            {
+                style =
+                {
+                    unityFontStyleAndWeight = FontStyle.Bold,
+                    unityTextAlign = TextAnchor.MiddleCenter,
+                    flexGrow = 1
+                }
+            });
+
+            foldout.Add(header);
             foldout.Add(listView);
             
+            rootVisualElement.Add(foldout);
             rootVisualElement.RegisterCallback<KeyDownEvent>(OnKeyDown, TrickleDown.TrickleDown);
         }
 
@@ -126,7 +194,10 @@ namespace Editor.Windows
             {
                 var sourceColor = sourceTexture.GetPixel(x, y);
                 if (Mathf.Approximately(sourceColor.a,  0f))
+                {
+                    texture.SetPixel(x, y, new Color(0, 0, 0, 0 ));
                     continue;
+                }
                 
                 var red = x / (float)width;
                 var green = y / (float)height;
