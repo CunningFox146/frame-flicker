@@ -1,5 +1,5 @@
 fileFormatVersion: 2
-guid: b3a859d1ff850e5408c724996003c908
+guid: 97082a6e0984f3942aaf6cd3d61cbce6
 TextureImporter:
   internalIDToNameTable: []
   externalObjects: {}
@@ -159,8 +159,8 @@ TextureImporter:
     edges: []
     weights: []
     secondaryTextures:
-    - texture: {fileID: 2800000, guid: 6a30992465338394182d9b206baf39bc, type: 3}
-      name: _MaskTex
+    - texture: {fileID: 2800000, guid: c6a361abcf004bc4bb3092756538c12a, type: 3}
+      name: _Test34
     nameFileIdTable: {}
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0

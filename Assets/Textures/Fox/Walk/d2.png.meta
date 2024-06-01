@@ -1,5 +1,5 @@
 fileFormatVersion: 2
-guid: 9a5415c786f6f154daaa8e8606dd8de8
+guid: 2e71207d055e0fc41a39ccdb1519bba3
 TextureImporter:
   internalIDToNameTable: []
   externalObjects: {}
@@ -43,7 +43,7 @@ TextureImporter:
   nPOTScale: 0
   lightmap: 0
   compressionQuality: 50
-  spriteMode: 2
+  spriteMode: 1
   spriteExtrude: 1
   spriteMeshType: 1
   alignment: 0
@@ -152,15 +152,15 @@ TextureImporter:
     customData: 
     physicsShape: []
     bones: []
-    spriteID: 
+    spriteID: 5e97eb03825dee720800000000000000
     internalID: 0
     vertices: []
     indices: 
     edges: []
     weights: []
     secondaryTextures:
-    - texture: {fileID: 2800000, guid: 596cf963d2ae11945a3a4087b905a087, type: 3}
-      name: _MaskTex
+    - texture: {fileID: 2800000, guid: 22246af2d0d94144fbeb136c3b2b8e53, type: 3}
+      name: _Test34
     nameFileIdTable: {}
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0

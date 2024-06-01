@@ -11,7 +11,7 @@ namespace Editor.Windows
 {
     public class AnimationCreator : EditorWindowBase
     {
-        private const string MaskTextureName = "_MaskTex";
+        private const string MaskTextureName = "_Test34";
         private const string UvFolderName = "UVs";
         private const string UvOverlayClass = "uvOverlay";
         private const string UvClass = "uv";
@@ -118,6 +118,7 @@ namespace Editor.Windows
             importer.alphaSource = TextureImporterAlphaSource.None;
             importer.mipmapEnabled = false;
             importer.wrapMode = TextureWrapMode.Clamp;
+            importer.spriteImportMode = SpriteImportMode.Single;
             importer.SaveAndReimport();
             
             return AssetDatabase.LoadAssetAtPath<Texture2D>(filePath);
