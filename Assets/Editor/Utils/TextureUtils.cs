@@ -11,14 +11,13 @@ namespace Editor.Utils
         {
             var width = sourceTexture.width;
             var height = sourceTexture.height;
-            var texture = new Texture2D(width, height);
+            var texture = new Texture2D(width, height, TextureFormat.RGB48, false);
             var (boundMin, boundMax) = GetTextureBounds(sourceTexture);
-            
             
             for (var x = 0; x < width; x++)
             for (var y = 0; y < height; y++)
             {
-                texture.SetPixel(x, y, Color.clear);
+                texture.SetPixel(x, y, Color.black);
             }
 
             

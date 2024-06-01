@@ -27,7 +27,6 @@ namespace Editor.Windows
             if (_selectedTextures is null || !_selectedTextures.Any())
                 return;
             
-            // ConvertTexturesToSprites(_selectedTextures);
             GetWindow<AnimationCreator>("Animation generator").Focus();
         }
 
@@ -63,41 +62,65 @@ namespace Editor.Windows
 
         private void StartAnimationGeneration()
         {
-            rootVisualElement.Q<Foldout>().value = true;
+            var animationName = rootVisualElement.Q<TextField>().value;
+            if (string.IsNullOrWhiteSpace(animationName))
+                return;
+            
+            AssetUtils.RenameAssets(_selectedTextures.Cast<Object>().ToArray(), animationName);
             ConvertTexturesToSprites(_selectedTextures);
-            GenerateUvMask(_selectedTextures);
+            GenerateUvMasks(_selectedTextures);
+            rootVisualElement.Q<Foldout>().value = true;
         }
 
-        private void GenerateUvMask(List<Texture2D> selectedTextures)
+        private void GenerateUvMasks(List<Texture2D> selectedTextures)
         {
+            var assetPath = Path.GetDirectoryName(AssetDatabase.GetAssetPath(_selectedTextures.FirstOrDefault()));
+            var folderPath = $"{assetPath}/{UvFolderName}";
+
+            if (Directory.Exists(folderPath))
+                foreach (var file in Directory.GetFiles(folderPath))
+                {
+                    File.Delete(file);
+                }
+            else
+                AssetDatabase.CreateFolder(assetPath, UvFolderName);
+
+            AssetDatabase.Refresh();
+            
             foreach (var texture in selectedTextures)
             {
                 var importer = (TextureImporter)AssetImporter.GetAtPath(AssetDatabase.GetAssetPath(texture));
-                if (importer.secondarySpriteTextures.Any(t => t.name == MaskTextureName))
+                importer.secondarySpriteTextures = new[]
                 {
-                    importer.secondarySpriteTextures = new[]
+                    new SecondarySpriteTexture
                     {
-                        new SecondarySpriteTexture
-                        {
-                            texture = GenerateUvTexture(texture),
-                            name = MaskTextureName
-                        }
-                    };
-                }
+                        texture = GenerateUvTexture(texture),
+                        name = MaskTextureName
+                    }
+                };
             }
         }
 
         private Texture2D GenerateUvTexture(Texture2D sourceTexture)
         {
             var texture = TextureUtils.CreateUvTexture(sourceTexture);
-            var assetPath = AssetDatabase.GetAssetPath(sourceTexture);
+            var assetPath = Path.GetDirectoryName(AssetDatabase.GetAssetPath(sourceTexture));
             var folderPath = $"{assetPath}/{UvFolderName}";
-            if (!Directory.Exists(folderPath))
-                AssetDatabase.CreateFolder(assetPath, UvFolderName);
-                    
-            AssetDatabase.CreateAsset(texture, $"{AssetDatabase.GetAssetPath(sourceTexture)}/{UvFolderName}/{sourceTexture.name}_UV");
+            var filePath = $"{folderPath}/{sourceTexture.name}_UV.png";
 
-            return texture;
+            var pngBytes = texture.EncodeToPNG();
+            File.WriteAllBytes(filePath, pngBytes);
+            AssetDatabase.ImportAsset(filePath, ImportAssetOptions.ForceUpdate);
+            AssetDatabase.SaveAssets();
+
+            var importer = (TextureImporter)AssetImporter.GetAtPath(filePath);
+            importer.filterMode = FilterMode.Point;
+            importer.alphaSource = TextureImporterAlphaSource.None;
+            importer.mipmapEnabled = false;
+            importer.wrapMode = TextureWrapMode.Clamp;
+            importer.SaveAndReimport();
+            
+            return AssetDatabase.LoadAssetAtPath<Texture2D>(filePath);
         }
 
 
@@ -164,6 +187,7 @@ namespace Editor.Windows
                     uvOverlay.style.width = Length.Percent(100);
                     uvOverlay.style.height = Length.Percent(100);
                     uvOverlay.visible = false;
+                    uvOverlay.style.opacity = 0.5f;
                     
                     uvPreview.AddToClassList(UvClass);
                     uvPreview.style.flexGrow = 1;
@@ -262,7 +286,7 @@ namespace Editor.Windows
         }
 
         protected override void OnEnterPressed() 
-            => Close();
+            => StartAnimationGeneration();
 
         protected override void OnEscapePressed()
         {

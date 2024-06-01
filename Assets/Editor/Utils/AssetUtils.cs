@@ -1,19 +1,20 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using UnityEditor;
-using UnityEngine;
+using Object = UnityEngine.Object;
 
 namespace Editor.Utils
 {
     public static class AssetUtils
     {
-        public static void RenameAssets(Object[] objects, string newName)
+        public static void RenameAssets(IList<Object> objects, string newName)
         {
             if (objects is null || string.IsNullOrWhiteSpace(newName))
                 return;
 
-            for (var i = 0; i < objects.Length; i++)
+            for (var i = 0; i < objects.Count; i++)
             {
                 var selectedObject = objects[i];
                 AssetDatabase.RenameAsset(AssetDatabase.GetAssetPath(selectedObject), $"{newName}{i}");
