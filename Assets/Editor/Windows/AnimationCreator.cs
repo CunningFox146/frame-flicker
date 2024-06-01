@@ -2,6 +2,7 @@
 using System.IO;
 using System.Linq;
 using CunningFox146.Animation.Util;
+using Unity.Mathematics;
 using UnityEditor;
 using UnityEditor.SearchService;
 using UnityEngine;
@@ -11,6 +12,7 @@ namespace Editor.Windows
 {
     public class AnimationCreator : EditorWindowBase
     {
+        private const float MinAlpha = 0.05f;
         private static List<Texture2D> _selectedTextures = new();
 
         [MenuItem("Assets/Create Animation", false, 101)]
@@ -28,9 +30,10 @@ namespace Editor.Windows
             
             var listView = new ListView
             {
+                
                 itemsSource = _selectedTextures,
                 selectionType = SelectionType.Multiple,
-                fixedItemHeight = 64,
+                fixedItemHeight = 512,
                 
                 makeItem = () =>
                 {
@@ -50,6 +53,7 @@ namespace Editor.Windows
 
                     toggle.style.width = toggleLength;
                     image.style.flexGrow = 1;
+                    image.style.backgroundColor = Color.green;
                     
                     uvOverlay.AddToClassList("uv");
                     uvOverlay.AddToClassList("uvOverlay");
@@ -186,28 +190,83 @@ namespace Editor.Windows
 
         private Texture2D CreateUvTexture(Texture2D sourceTexture)
         {
+            
             var width = sourceTexture.width;
             var height = sourceTexture.height;
             var texture = new Texture2D(width, height);
+            var (boundMin, boundMax) = GetTextureBounds(sourceTexture);
+            
             
             for (var x = 0; x < width; x++)
             for (var y = 0; y < height; y++)
             {
-                var sourceColor = sourceTexture.GetPixel(x, y);
-                if (Mathf.Approximately(sourceColor.a,  0f))
-                {
-                    texture.SetPixel(x, y, new Color(0, 0, 0, 0 ));
-                    continue;
-                }
-                
-                var red = x / (float)width;
-                var green = y / (float)height;
-                var color = new Color(red, green, 0f);
-                
-                texture.SetPixel(x, y, color);
+                texture.SetPixel(x, y, Color.clear);
             }
+
+            
+            for(var x = boundMin.x; x <= boundMax.x; x++)
+            for (var y = boundMin.y; y <= boundMax.y; y++)
+            {
+                var red = math.remap(boundMin.x, boundMax.x, 0f, 1f, x);
+                var green = math.remap(boundMin.y, boundMax.y, 0f, 1f, y);
+                texture.SetPixel(x, y, new Color(red, green, 0f));
+            }
+
+            texture.wrapMode = TextureWrapMode.Clamp;
+            texture.filterMode = FilterMode.Point;
             texture.Apply();
             return texture;
+            
+            // var width = sourceTexture.width;
+            // var height = sourceTexture.height;
+            // var texture = new Texture2D(width, height);
+            //
+            // for (var x = 0; x < width; x++)
+            // for (var y = 0; y < height; y++)
+            // {
+            //     var sourceColor = sourceTexture.GetPixel(x, y);
+            //     if (Mathf.Approximately(sourceColor.a,  0f))
+            //     {
+            //         texture.SetPixel(x, y, new Color(0, 0, 0, 0 ));
+            //         continue;
+            //     }
+            //     
+            //     var red = x / (float)width;
+            //     var green = y / (float)height;
+            //     var color = new Color(red, green, 0f);
+            //     
+            //     texture.SetPixel(x, y, color);
+            // }
+            // texture.Apply();
+            // return texture;
+        }
+
+        private (Vector2Int min, Vector2Int max) GetTextureBounds(Texture2D sourceTexture)
+        {
+            var min = Vector2Int.one * int.MaxValue;
+            var max = Vector2Int.one * int.MinValue;
+            
+            for (var x = 0; x < sourceTexture.width; x++)
+            for (var y = 0; y < sourceTexture.height; y++)
+            {
+                var sourceColor = sourceTexture.GetPixel(x, y);
+                if (sourceColor.a > MinAlpha)
+                {
+                    if (min.x > x)
+                        min.x = x;
+                    
+                    if (min.y > y)
+                        min.y = y;
+                    
+                    if (max.x < x)
+                        max.x = x;
+                    
+                    if (max.y < y)
+                        max.y = y;
+                }
+            }
+
+            return (min, max);
         }
 
         private void OnKeyDown(KeyDownEvent evt)
@@ -228,7 +287,7 @@ namespace Editor.Windows
         {
             IEnumerable<Object> selectedObjects = null;
 
-            if (Selection.objects.Length > 1)
+            if (Selection.objects.Length > 0)
                 selectedObjects = Selection.objects;
             else
             {
