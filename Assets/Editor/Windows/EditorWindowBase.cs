@@ -1,6 +1,6 @@
 ﻿using UnityEditor;
 
-namespace GameEditor.Windows
+namespace Editor.Windows
 {
     public abstract class EditorWindowBase : EditorWindow
     {
