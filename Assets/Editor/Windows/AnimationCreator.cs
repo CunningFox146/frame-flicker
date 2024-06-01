@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using CunningFox146.Animation.Util;
 using Editor.Utils;
@@ -10,9 +11,11 @@ namespace Editor.Windows
 {
     public class AnimationCreator : EditorWindowBase
     {
+        private const string MaskTextureName = "_MaskTex";
+        private const string UvFolderName = "UVs";
         private const string UvOverlayClass = "uvOverlay";
         private const string UvClass = "uv";
-        
+
         private static List<Texture2D> _selectedTextures = new();
 
         [MenuItem("Assets/Create Animation", false, 101)]
@@ -40,15 +43,63 @@ namespace Editor.Windows
             
             var listView = RenderListView(nameLength, toggleLength);
             var header = RenderHeader(nameLength, toggleLength);
+
+            var textField = new TextField("Animation name");
+            var button = new Button();
+            button.text = "Generate";
+            button.clicked += StartAnimationGeneration;
             
             var foldout = new Foldout();
             foldout.text = "Textures";
+            foldout.value = false;
 
             foldout.Add(header);
             foldout.Add(listView);
 
+            rootVisualElement.Add(textField);
+            rootVisualElement.Add(button);
             rootVisualElement.Add(foldout);
         }
+
+        private void StartAnimationGeneration()
+        {
+            rootVisualElement.Q<Foldout>().value = true;
+            ConvertTexturesToSprites(_selectedTextures);
+            GenerateUvMask(_selectedTextures);
+        }
+
+        private void GenerateUvMask(List<Texture2D> selectedTextures)
+        {
+            foreach (var texture in selectedTextures)
+            {
+                var importer = (TextureImporter)AssetImporter.GetAtPath(AssetDatabase.GetAssetPath(texture));
+                if (importer.secondarySpriteTextures.Any(t => t.name == MaskTextureName))
+                {
+                    importer.secondarySpriteTextures = new[]
+                    {
+                        new SecondarySpriteTexture
+                        {
+                            texture = GenerateUvTexture(texture),
+                            name = MaskTextureName
+                        }
+                    };
+                }
+            }
+        }
+
+        private Texture2D GenerateUvTexture(Texture2D sourceTexture)
+        {
+            var texture = TextureUtils.CreateUvTexture(sourceTexture);
+            var assetPath = AssetDatabase.GetAssetPath(sourceTexture);
+            var folderPath = $"{assetPath}/{UvFolderName}";
+            if (!Directory.Exists(folderPath))
+                AssetDatabase.CreateFolder(assetPath, UvFolderName);
+                    
+            AssetDatabase.CreateAsset(texture, $"{AssetDatabase.GetAssetPath(sourceTexture)}/{UvFolderName}/{sourceTexture.name}_UV");
+
+            return texture;
+        }
+
 
         private static void ConvertTexturesToSprites(List<Texture2D> textures)
         {
