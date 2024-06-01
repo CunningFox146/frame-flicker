@@ -1,7 +1,9 @@
 ﻿using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using CunningFox146.Animation.Util;
 using UnityEditor;
+using UnityEditor.SearchService;
 using UnityEngine;
 using UnityEngine.UIElements;
 
@@ -14,7 +16,7 @@ namespace Editor.Windows
         [MenuItem("Assets/Create Animation", false, 101)]
         public static void CreateAnimation()
         {
-            _selectedTextures = Selection.objects.Where(e => e is Texture2D).Cast<Texture2D>().ToList();
+            _selectedTextures = GetSelectedObjects()?.Where(e => e is Texture2D).Cast<Texture2D>().ToList();
             ConvertTexturesToSprites(_selectedTextures);
             GetWindow<AnimationCreator>("Animation generator").Focus();
         }
@@ -95,7 +97,6 @@ namespace Editor.Windows
                     // }
                 },
 
-
                 style =
                 {
                     flexGrow = 1
@@ -128,7 +129,7 @@ namespace Editor.Windows
                 }
             });
             
-            header.Add(new Label("Texture")
+            header.Add(new Label("Source Texture")
             {
                 style =
                 {
@@ -138,7 +139,7 @@ namespace Editor.Windows
                 }
             });
             
-            header.Add(new Label("UV")
+            header.Add(new Label("UV Texture")
             {
                 style =
                 {
@@ -182,7 +183,7 @@ namespace Editor.Windows
                 
             importer.SaveAndReimport();
         }
-        
+
         private Texture2D CreateUvTexture(Texture2D sourceTexture)
         {
             var width = sourceTexture.width;
@@ -221,6 +222,25 @@ namespace Editor.Windows
                     Close();
                     break;
             }
+        }
+
+        private static IEnumerable<Object> GetSelectedObjects()
+        {
+            IEnumerable<Object> selectedObjects = null;
+
+            if (Selection.objects.Length > 1)
+                selectedObjects = Selection.objects;
+            else
+            {
+                var folderPath = AssetDatabase.GetAssetPath(Selection.activeInstanceID);
+                if (Directory.Exists(folderPath))
+                {
+                    var files = Directory.GetFiles(folderPath, "*", SearchOption.TopDirectoryOnly);
+                    selectedObjects = files.Select(AssetDatabase.LoadAssetAtPath<Object>).ToList();
+                }
+            }
+
+            return selectedObjects;
         }
     }
 }
