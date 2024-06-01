@@ -36,7 +36,8 @@ namespace Editor.Windows
         {
             _inputField = new TextField();
             _inputField.style.flexGrow = 1;
-            
+
+            rootVisualElement.focusable = true;
             rootVisualElement.Add(_inputField);
             rootVisualElement.RegisterCallback<KeyDownEvent>(OnKeyDown, TrickleDown.TrickleDown);
         }

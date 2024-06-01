@@ -1,26 +1,39 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using CunningFox146.Animation.Util;
 using Unity.Mathematics;
 using UnityEditor;
-using UnityEditor.SearchService;
 using UnityEngine;
 using UnityEngine.UIElements;
+using Object = UnityEngine.Object;
 
 namespace Editor.Windows
 {
     public class AnimationCreator : EditorWindowBase
     {
         private const float MinAlpha = 0.05f;
+        private const string UvOverlayClass = "uvOverlay";
+        private const string UvClass = "uv";
+        
         private static List<Texture2D> _selectedTextures = new();
 
         [MenuItem("Assets/Create Animation", false, 101)]
         public static void CreateAnimation()
         {
             _selectedTextures = GetSelectedObjects()?.Where(e => e is Texture2D).Cast<Texture2D>().ToList();
+
+            if (_selectedTextures is null || !_selectedTextures.Any())
+                return;
+            
             ConvertTexturesToSprites(_selectedTextures);
             GetWindow<AnimationCreator>("Animation generator").Focus();
+        }
+
+        private void OnFocus()
+        {
+            rootVisualElement.Focus();
         }
 
         protected override void RenderWindow()
@@ -33,7 +46,7 @@ namespace Editor.Windows
                 
                 itemsSource = _selectedTextures,
                 selectionType = SelectionType.Multiple,
-                fixedItemHeight = 512,
+                fixedItemHeight = 64,
                 
                 makeItem = () =>
                 {
@@ -53,17 +66,16 @@ namespace Editor.Windows
 
                     toggle.style.width = toggleLength;
                     image.style.flexGrow = 1;
-                    image.style.backgroundColor = Color.green;
                     
-                    uvOverlay.AddToClassList("uv");
-                    uvOverlay.AddToClassList("uvOverlay");
+                    uvOverlay.AddToClassList(UvClass);
+                    uvOverlay.AddToClassList(UvOverlayClass);
                     uvOverlay.style.position = Position.Absolute;
                     uvOverlay.style.flexGrow = 1;
                     uvOverlay.style.width = Length.Percent(100);
                     uvOverlay.style.height = Length.Percent(100);
                     uvOverlay.visible = false;
                     
-                    uvPreview.AddToClassList("uv");
+                    uvPreview.AddToClassList(UvClass);
                     uvPreview.style.flexGrow = 1;
                     
                     root.Add(label);
@@ -78,27 +90,30 @@ namespace Editor.Windows
                 {
                     var texture = _selectedTextures[idx];
                     var importer = (TextureImporter)AssetImporter.GetAtPath(AssetDatabase.GetAssetPath(texture));
-                    var uvPreview = element.Q<Image>(className: "uvOverlay");
+                    var uvPreview = element.Q<Image>(className: UvOverlayClass);
                     
                     element.Q<Label>().text = texture.name;
                     element.Q<Image>().image = texture;
                     element.Q<Toggle>().RegisterValueChangedCallback(val => uvPreview.visible = val.newValue);
                     
-                    var uv = CreateUvTexture(texture);
-                    foreach (var image in element.Query<Image>(className: "uv").ToList())
+                    // var uv = CreateUvTexture(texture);
+                    if (importer.secondarySpriteTextures.Any())
                     {
-                        image.image = uv;
+                        var secondaryTexture = importer.secondarySpriteTextures.First();
+                        foreach (var image in element.Query<Image>(className: UvClass).ToList())
+                        {
+                            image.image = secondaryTexture.texture;
+                            image.style.backgroundColor = Color.clear;
+                        }
                     }
-
-                    // if (importer.secondarySpriteTextures.Any())
-                    // {
-                    //     var secondaryTexture = importer.secondarySpriteTextures.First();
-                    //     uvPreview.image = secondaryTexture.texture;
-                    // }
-                    // else
-                    // {
-                    //     uvPreview.style.backgroundColor = Color.magenta;
-                    // }
+                    else
+                    {
+                        foreach (var image in element.Query<Image>(className: UvClass).ToList())
+                        {
+                            image.image = null;
+                            image.style.backgroundColor = Color.magenta;
+                        }
+                    }
                 },
 
                 style =
@@ -123,7 +138,7 @@ namespace Editor.Windows
                 }
             });
             
-            header.Add(new Label("Show UV")
+            header.Add(new Label("Overlay UV")
             {
                 style =
                 {
@@ -155,7 +170,8 @@ namespace Editor.Windows
 
             foldout.Add(header);
             foldout.Add(listView);
-            
+
+            rootVisualElement.focusable = true;
             rootVisualElement.Add(foldout);
             rootVisualElement.RegisterCallback<KeyDownEvent>(OnKeyDown, TrickleDown.TrickleDown);
         }
