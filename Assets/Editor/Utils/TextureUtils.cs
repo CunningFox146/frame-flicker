@@ -7,26 +7,40 @@ namespace Editor.Utils
     {
         private const float MinAlpha = 0.05f;
         
-        public static Texture2D CreateUvTexture(Texture2D sourceTexture)
+        public static Texture2D CreateUvTexture(Texture2D sourceTexture, bool useBounds = false)
         {
             var width = sourceTexture.width;
             var height = sourceTexture.height;
             var texture = new Texture2D(width, height, TextureFormat.RGB565, false);
-            var (boundMin, boundMax) = GetTextureBounds(sourceTexture);
-            
-            for (var x = 0; x < width; x++)
-            for (var y = 0; y < height; y++)
-            {
-                texture.SetPixel(x, y, Color.black);
-            }
 
-            
-            for(var x = boundMin.x; x <= boundMax.x; x++)
-            for (var y = boundMin.y; y <= boundMax.y; y++)
+
+            if (useBounds)
             {
-                var red = math.remap(boundMin.x, boundMax.x, 0f, 1f, x);
-                var green = math.remap(boundMin.y, boundMax.y, 0f, 1f, y);
-                texture.SetPixel(x, y, new Color(red, green, 0f));
+                var (boundMin, boundMax) = GetTextureBounds(sourceTexture);
+                
+                for (var x = 0; x < width; x++)
+                for (var y = 0; y < height; y++)
+                {
+                    texture.SetPixel(x, y, Color.black);
+                }
+
+                for (var x = boundMin.x; x <= boundMax.x; x++)
+                for (var y = boundMin.y; y <= boundMax.y; y++)
+                {
+                    var red = math.remap(boundMin.x, boundMax.x, 0f, 1f, x);
+                    var green = math.remap(boundMin.y, boundMax.y, 0f, 1f, y);
+                    texture.SetPixel(x, y, new Color(red, green, 0f));
+                }
+            }
+            else
+            {
+                for (var x = 0; x < width; x++)
+                for (var y = 0; y < height; y++)
+                {
+                    var red = x / (float)width;
+                    var green = y / (float)height;
+                    texture.SetPixel(x, y, new Color(red, green, 0f));
+                }
             }
 
             texture.wrapMode = TextureWrapMode.Clamp;
