@@ -1,5 +1,5 @@
 fileFormatVersion: 2
-guid: 110312fd243e29c419c1a8ccdde4361a
+guid: 59bfd026ad5a10c4ea60111b6d6b3b4e
 TextureImporter:
   internalIDToNameTable: []
   externalObjects: {}
@@ -21,7 +21,7 @@ TextureImporter:
     heightScale: 0.25
     normalMapFilter: 0
     flipGreenChannel: 0
-  isReadable: 1
+  isReadable: 0
   streamingMipmaps: 0
   streamingMipmapsPriority: 0
   vTOnly: 0
@@ -72,9 +72,9 @@ TextureImporter:
     maxTextureSize: 2048
     resizeAlgorithm: 0
     textureFormat: -1
-    textureCompression: 2
-    compressionQuality: 75
-    crunchedCompression: 1
+    textureCompression: 0
+    compressionQuality: 100
+    crunchedCompression: 0
     allowsAlphaSplitting: 0
     overridden: 0
     ignorePlatformSupport: 0
@@ -153,14 +153,14 @@ TextureImporter:
     physicsShape: []
     bones: []
     spriteID: 5e97eb03825dee720800000000000000
-    internalID: 0
+    internalID: 1537655665
     vertices: []
     indices: 
     edges: []
     weights: []
     secondaryTextures:
-    - texture: {fileID: 2800000, guid: 8e652ef5392d0af43b8fde39523282d7, type: 3}
-      name: _Test34
+    - texture: {fileID: 2800000, guid: 6745d467588139c47a2e097ebc4c6fe2, type: 3}
+      name: _UvMask
     nameFileIdTable: {}
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0

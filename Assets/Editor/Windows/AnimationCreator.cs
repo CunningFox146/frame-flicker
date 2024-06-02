@@ -11,7 +11,7 @@ namespace Editor.Windows
 {
     public class AnimationCreator : EditorWindowBase
     {
-        private const string MaskTextureName = "_Test34";
+        private const string UvMaskName = "_UvMask";
         private const string UvFolderName = "UVs";
         private const string UvOverlayClass = "uvOverlay";
         private const string UvClass = "uv";
@@ -30,10 +30,8 @@ namespace Editor.Windows
             GetWindow<AnimationCreator>("Animation generator").Focus();
         }
 
-        private void OnFocus()
-        {
-            rootVisualElement.Focus();
-        }
+        private void OnFocus() 
+            => rootVisualElement.Focus();
 
         protected override void RenderWindow()
         {
@@ -66,24 +64,25 @@ namespace Editor.Windows
             if (string.IsNullOrWhiteSpace(animationName))
                 return;
             
-            AssetUtils.RenameAssets(_selectedTextures.Cast<Object>().ToArray(), animationName);
-            ConvertTexturesToSprites(_selectedTextures);
-            GenerateUvMasks(_selectedTextures);
             rootVisualElement.Q<Foldout>().value = true;
+            
+            AssetUtils.RenameAssets(_selectedTextures.Cast<Object>().ToArray(), animationName);
+            SetupTextures(_selectedTextures);
+            GenerateUvMasks(_selectedTextures);
+            CleanupTextures(_selectedTextures);
+            AssetDatabase.Refresh();
         }
 
-        private void GenerateUvMasks(List<Texture2D> selectedTextures)
+        private static void GenerateUvMasks(List<Texture2D> selectedTextures)
         {
             var assetPath = Path.GetDirectoryName(AssetDatabase.GetAssetPath(_selectedTextures.FirstOrDefault()));
             var folderPath = $"{assetPath}/{UvFolderName}";
 
-            if (Directory.Exists(folderPath))
-                foreach (var file in Directory.GetFiles(folderPath))
-                {
-                    File.Delete(file);
-                }
-            else
+            if (!Directory.Exists(folderPath))
                 AssetDatabase.CreateFolder(assetPath, UvFolderName);
+            else
+                foreach (var file in Directory.GetFiles(folderPath))
+                    File.Delete(file);
 
             AssetDatabase.Refresh();
             
@@ -94,14 +93,14 @@ namespace Editor.Windows
                 {
                     new SecondarySpriteTexture
                     {
-                        texture = GenerateUvTexture(texture),
-                        name = MaskTextureName
+                        texture = GenerateUvMask(texture),
+                        name = UvMaskName
                     }
                 };
             }
         }
 
-        private Texture2D GenerateUvTexture(Texture2D sourceTexture)
+        private static Texture2D GenerateUvMask(Texture2D sourceTexture)
         {
             var texture = TextureUtils.CreateUvTexture(sourceTexture);
             var assetPath = Path.GetDirectoryName(AssetDatabase.GetAssetPath(sourceTexture));
@@ -118,25 +117,16 @@ namespace Editor.Windows
             importer.alphaSource = TextureImporterAlphaSource.None;
             importer.mipmapEnabled = false;
             importer.wrapMode = TextureWrapMode.Clamp;
-            importer.spriteImportMode = SpriteImportMode.Single;
             importer.SaveAndReimport();
             
             return AssetDatabase.LoadAssetAtPath<Texture2D>(filePath);
         }
 
-
-        private static void ConvertTexturesToSprites(List<Texture2D> textures)
+        private static void SetupTextures(List<Texture2D> textures)
         {
-            Undo.IncrementCurrentGroup();
-            
             foreach (var importer in textures.Select(texture => AssetImporter.GetAtPath(AssetDatabase.GetAssetPath(texture))))
-            {
-                if (importer is not TextureImporter textureImporter)
-                    continue;
-                
-                Undo.RecordObject(importer, $"Texture convert {importer.name}");
-                SetupSpriteImporter(textureImporter);
-            }
+                if (importer is  TextureImporter textureImporter)
+                   SetupSpriteImporter(textureImporter);
         }
 
         private static void SetupSpriteImporter(TextureImporter importer)
@@ -144,13 +134,27 @@ namespace Editor.Windows
             importer.textureType = TextureImporterType.Sprite;
             importer.filterMode = FilterMode.Point;
 
-            importer.compressionQuality = 75;
-            importer.textureCompression = TextureImporterCompression.CompressedHQ;
-            importer.crunchedCompression = true;
+            importer.compressionQuality = 100;
+            importer.crunchedCompression = false;
+            importer.textureCompression = TextureImporterCompression.Uncompressed;
             importer.isReadable = true;
             importer.spritePixelsPerUnit = 32;
+            importer.spriteImportMode = SpriteImportMode.Single;
                 
             importer.SaveAndReimport();
+        }
+        
+        private static void CleanupTextures(List<Texture2D> textures)
+        {
+            foreach (var importer in textures.Select(texture => AssetImporter.GetAtPath(AssetDatabase.GetAssetPath(texture))))
+                if (importer is  TextureImporter textureImporter)
+                    CleanupTexture(textureImporter, importer);
+        }
+
+        private static void CleanupTexture(TextureImporter textureImporter, AssetImporter importer)
+        {
+            textureImporter.isReadable = false;
+            AssetDatabase.ImportAsset(importer.assetPath, ImportAssetOptions.ForceUpdate);
         }
 
         private static ListView RenderListView(Length nameLength, Length toggleLength)
@@ -211,7 +215,6 @@ namespace Editor.Windows
                     element.Q<Image>().image = texture;
                     element.Q<Toggle>().RegisterValueChangedCallback(val => uvPreview.visible = val.newValue);
                     
-                    // var uv = CreateUvTexture(texture);
                     if (importer.secondarySpriteTextures.Any())
                     {
                         var secondaryTexture = importer.secondarySpriteTextures.First();
@@ -283,6 +286,7 @@ namespace Editor.Windows
                     flexGrow = 1
                 }
             });
+            
             return header;
         }
 
