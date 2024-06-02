@@ -11,7 +11,7 @@ namespace Editor.Utils
         {
             var width = sourceTexture.width;
             var height = sourceTexture.height;
-            var texture = new Texture2D(width, height, TextureFormat.RGB48, false);
+            var texture = new Texture2D(width, height, TextureFormat.RGB565, false);
             var (boundMin, boundMax) = GetTextureBounds(sourceTexture);
             
             for (var x = 0; x < width; x++)
@@ -30,7 +30,7 @@ namespace Editor.Utils
             }
 
             texture.wrapMode = TextureWrapMode.Clamp;
-            texture.filterMode = FilterMode.Point;
+            texture.filterMode = FilterMode.Bilinear;
             texture.Apply();
             return texture;
         }
