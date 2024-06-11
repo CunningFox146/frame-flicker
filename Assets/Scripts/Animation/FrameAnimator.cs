@@ -10,16 +10,15 @@ namespace CunningFox146.Animation.Animation
         public event Action AnimationDone;
         public event Action AnimationQueueDone;
 
-        [SerializeField] private int _framesPerSecond = 12;
         [SerializeField] private FrameAnimation _currentAnimation;
         [SerializeField] private SpriteRenderer _spriteRenderer;
-        
+
         private float _frameChangeTimer;
         private int _currentFrame;
         private readonly Queue<FrameAnimation> _queuedAnimations = new();
 
         public float SpeedMultiplier { get; set; } = 1f;
-        private float ChangeFrameTime => 1 / (float)_framesPerSecond;
+        private float ChangeFrameTime => 1 / (float)_currentAnimation.FramesPerSecond;
         private int FrameCount => _currentAnimation ? _currentAnimation.Sprites.Count : 0;
         private bool ShouldChangeFrame => _frameChangeTimer > ChangeFrameTime;
 
@@ -51,15 +50,15 @@ namespace CunningFox146.Animation.Animation
             ClearState();
         }
 
-        public void Pause() 
+        public void Pause()
             => enabled = false;
 
         public void Resume()
             => enabled = true;
-        
+
         private void ChangeFrame()
         {
-            if (++_currentFrame >= FrameCount) 
+            if (++_currentFrame >= FrameCount)
                 OnAnimationDone();
 
             _spriteRenderer.sprite = _currentAnimation.Sprites[_currentFrame];
@@ -67,7 +66,6 @@ namespace CunningFox146.Animation.Animation
 
         private void OnAnimationDone()
         {
-            Debug.Log("OnAnimationDone", this);
             AnimationDone?.Invoke();
             ClearState();
             if (_queuedAnimations.Any())
